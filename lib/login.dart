@@ -19,6 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = new TextEditingController();
   final TextEditingController passwordController = new TextEditingController();
   final TextEditingController nameController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   final _auth = FirebaseAuth.instance;
   @override
@@ -168,8 +169,8 @@ class _LoginPageState extends State<LoginPage> {
                             setState(() {
                               visible = true;
                             });
-                            signIn(
-                                emailController.text, passwordController.text);
+                            signIn(emailController.text,
+                                passwordController.text, context);
                           },
                           child: Text(
                             "Login",
@@ -221,60 +222,94 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void route() {
-    User? user = FirebaseAuth.instance.currentUser;
-    var kk = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user!.uid)
+//create a function for sign in
+  void signIn(String email, String password, BuildContext context) async {
+    // if (_formKey.currentState!.validate()) {
+    try {
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      route(context); // Pass the context to the route function
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        print(e.toString());
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('User not found')),
+        );
+      } else if (e.code == 'wrong-password') {
+        print(e.toString());
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('wrong password')),
+        );
+      }
+    }
+    // }
+  }
+}
+
+void route(BuildContext context) {
+  User? user = FirebaseAuth.instance.currentUser;
+
+  if (user != null) {
+    FirebaseFirestore.instance
+        .collection('project_coordinators')
+        .doc(user.uid)
         .get()
         .then((DocumentSnapshot documentSnapshot) {
       if (documentSnapshot.exists) {
         String name = documentSnapshot.get('name');
-
-        if (documentSnapshot.get('role') == "Supervisor") {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SupervisorHome(name: name),
-            ),
-          );
-        } else if (documentSnapshot.get('role') == "Coordinator") {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProjectCoordinatorHome(name: name),
-            ),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StudentHome(name: name),
-            ),
-          );
-        }
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProjectCoordinatorHome(name: name),
+          ),
+        );
       } else {
-        print('Document does not exist on the database');
+        FirebaseFirestore.instance
+            .collection('students')
+            .where('userId', isEqualTo: user.uid)
+            .get()
+            .then((QuerySnapshot querySnapshot) {
+          if (querySnapshot.docs.isNotEmpty) {
+            // Check if the retrieved student document corresponds to the current user
+            bool isCurrentUser = querySnapshot.docs[0].id == user.uid;
+
+            if (isCurrentUser) {
+              String name = querySnapshot.docs[0].get('studentName');
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StudentHome(name: name),
+                ),
+              );
+            } else {
+              print('Invalid user role');
+            }
+          } else {
+            FirebaseFirestore.instance
+                .collection('supervisors')
+                .where('userId', isEqualTo: user.uid)
+                .get()
+                .then((QuerySnapshot querySnapshot) {
+              if (querySnapshot.docs.isNotEmpty) {
+                String name = querySnapshot.docs[0].get('supervisorName');
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SupervisorHome(name: name),
+                  ),
+                );
+              } else {
+                print('Invalid user role');
+              }
+            });
+          }
+        });
       }
     });
-  }
-
-  void signIn(String email, String password) async {
-    if (_formkey.currentState!.validate()) {
-      try {
-        UserCredential userCredential =
-            await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-        route();
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'user-not-found') {
-          print('No user found for that email.');
-        } else if (e.code == 'wrong-password') {
-          print('Wrong password provided for that user.');
-        }
-      }
-    }
+  } else {
+    print('User not logged in');
   }
 }

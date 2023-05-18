@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'login.dart';
-// import 'model.dart';
 
 class Register extends StatefulWidget {
   @override
@@ -29,9 +29,6 @@ class _RegisterState extends State<Register> {
   bool _isObscure = true;
   bool _isObscure2 = true;
   File? file;
-
-  var _currentItemSelected = "Student";
-  var role = "Student";
 
   @override
   Widget build(BuildContext context) {

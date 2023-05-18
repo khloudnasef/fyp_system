@@ -1,12 +1,131 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import 'login.dart';
 import 'studenthome.dart';
+import 'package:excel/excel.dart';
+import 'package:spreadsheet_decoder/spreadsheet_decoder.dart';
+import 'package:path/path.dart';
 
 class ProjectCoordinatorHome extends StatelessWidget {
   final String name;
   const ProjectCoordinatorHome({Key? key, required this.name})
       : super(key: key);
+
+  Future<void> handleUpload(BuildContext context) async {
+    try {
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+        withData: true,
+      );
+
+      if (result != null) {
+        final PlatformFile file = result.files.first;
+        final bytes = file.bytes!;
+        final excel = Excel.decodeBytes(bytes);
+
+        // Assuming the student details are in the first sheet
+        final Sheet studentSheet = excel.tables['Student']!;
+        final List<dynamic> studentRows = studentSheet.rows;
+
+        // Assuming the supervisor details are in the second sheet
+        final Sheet supervisorSheet = excel.tables['Supervisor']!;
+        final List<dynamic> supervisorRows = supervisorSheet.rows;
+
+        final firestore = FirebaseFirestore.instance;
+        await Firebase
+            .initializeApp(); // Initialize Firebase (if not done already)
+
+        final FirebaseAuth auth = FirebaseAuth.instance;
+
+        // remove the first row in studentRows
+        studentRows.removeAt(0);
+
+        for (final studentRow in studentRows) {
+          final studentId = studentRow[0].value.toString();
+          final studentName = studentRow[1].value.toString();
+          final studentEmail = studentRow[2].value.toString();
+          final studentPassword = studentRow[3].value.toString();
+          final supervisorId = studentRow[4].value.toString();
+          final supervisorName = studentRow[5].value.toString();
+          final projectTitle = studentRow[6].value.toString();
+
+          // Create a new document in the "students" collection
+          final studentDoc = await firestore.collection('students').add({
+            'studentId': studentId,
+            'studentName': studentName,
+            'studentEmail': studentEmail,
+            'studentPassword': studentPassword,
+            'supervisorId': supervisorId,
+            'supervisorName': supervisorName,
+            'projectTitle': projectTitle,
+          });
+
+          // Create user account for the student in Firebase Authentication
+          await auth.createUserWithEmailAndPassword(
+            email: studentEmail,
+            password: studentPassword,
+          );
+
+          // Associate the student's document ID with their user ID in a separate collection
+          await firestore.collection('studentUsers').doc(studentDoc.id).set({
+            'userId': auth.currentUser!.uid,
+          });
+        }
+
+        supervisorRows.removeAt(0);
+
+        // Upload supervisor details to Firebase
+        for (final supervisorRow in supervisorRows) {
+          // get supervisorId, supervisorName, supervisorEmail, supervisorPassword
+          final supervisorId = supervisorRow[0].value.toString();
+          final supervisorName = supervisorRow[1].value.toString();
+          final supervisorEmail = supervisorRow[2].value.toString();
+          final supervisorPassword = supervisorRow[3].value.toString();
+          final supervisorContact = supervisorRow[4].value.toString();
+
+          // Create a new document in the "supervisors" collection
+          final supervisorDoc = await firestore.collection('supervisors').add({
+            'supervisorId': supervisorId,
+            'supervisorName': supervisorName,
+            'supervisorEmail': supervisorEmail,
+            'supervisorPassword': supervisorPassword,
+            'supervisorContact': supervisorContact,
+          });
+
+          // Create user account for the supervisor in Firebase Authentication
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: supervisorEmail,
+            password: supervisorPassword,
+          );
+
+          // Associate the supervisor's document ID with their user ID in a separate collection
+          await firestore
+              .collection('supervisorUsers')
+              .doc(supervisorDoc.id)
+              .set({
+            'userId': FirebaseAuth.instance.currentUser!.uid,
+          });
+        }
+
+        // Show success message or navigate to the next screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload successful')),
+        );
+      }
+    } catch (e) {
+      // Handle error
+      print(e.toString());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +238,7 @@ class ProjectCoordinatorHome extends StatelessWidget {
                                   child: ElevatedButton.icon(
                                     onPressed: () {
                                       // Handle upload button tap
+                                      handleUpload(context);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       primary: Colors.red,
