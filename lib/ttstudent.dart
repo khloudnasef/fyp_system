@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:fyp_system2/bookconsultation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'bookconsultation.dart';
+import 'bookconsultation_test.dart';
 
 class StudentTimetable extends StatefulWidget {
-  const StudentTimetable({Key? key});
+  const StudentTimetable({super.key});
 
   @override
   State<StudentTimetable> createState() => _StudentTimetableState();
@@ -148,7 +149,7 @@ class _StudentTimetableState extends State<StudentTimetable> {
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Timetable saved successfully')),
+            const SnackBar(content: Text('Timetable saved successfully')),
           );
         }
       });
@@ -161,9 +162,9 @@ class _StudentTimetableState extends State<StudentTimetable> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Add Student Timetable'),
+          title: const Text('Add Student Timetable'),
           backgroundColor: Colors.red,
-          bottom: TabBar(
+          bottom: const TabBar(
             tabs: [
               Tab(text: 'Add Timetable'),
               Tab(text: 'Upcoming Meetings'),
@@ -181,7 +182,7 @@ class _StudentTimetableState extends State<StudentTimetable> {
                     child: DataTable(
                       columns: [
                         // Column for days of the week
-                        DataColumn(
+                        const DataColumn(
                           label: SizedBox(width: 100),
                         ),
                         // Columns for each time slot
@@ -201,7 +202,8 @@ class _StudentTimetableState extends State<StudentTimetable> {
                                 child: Text(
                                   _daysOfWeek[day],
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
@@ -222,20 +224,21 @@ class _StudentTimetableState extends State<StudentTimetable> {
                                           color: Colors.grey.withOpacity(0.2),
                                           blurRadius: 2,
                                           spreadRadius: 2,
-                                          offset: Offset(0, 1),
+                                          offset: const Offset(0, 1),
                                         ),
                                       ],
                                       color: _timetableSlots[day][hour].isEmpty
                                           ? Colors.grey.withOpacity(0.2)
-                                          : Color.fromARGB(255, 175, 233, 205),
+                                          : const Color.fromARGB(
+                                              255, 175, 233, 205),
                                     ),
                                     child: TextField(
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 14.0,
                                         //fontWeight: FontWeight.bold,
                                       ),
-                                      decoration: InputDecoration(
+                                      decoration: const InputDecoration(
                                         isDense: true,
                                         contentPadding: EdgeInsets.symmetric(
                                           vertical: 8.0,
@@ -269,27 +272,28 @@ class _StudentTimetableState extends State<StudentTimetable> {
                     ),
                   ),
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 20,
                 ),
                 Container(
                   alignment: Alignment.bottomRight,
-                  margin: EdgeInsets.only(bottom: 16.0, right: 16.0),
+                  margin: const EdgeInsets.only(bottom: 16.0, right: 16.0),
                   child: FloatingActionButton.extended(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => Consultation()),
+                        MaterialPageRoute(
+                            builder: (context) => const BookConsultationTest()),
                       );
                     },
-                    label: Text(
+                    label: const Text(
                       'Book Consultation',
                       style: TextStyle(
                         fontSize: 14.0,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    icon: Icon(Icons.calendar_today),
+                    icon: const Icon(Icons.calendar_today),
                     backgroundColor: Colors.red,
                   ),
                 ),
@@ -301,8 +305,8 @@ class _StudentTimetableState extends State<StudentTimetable> {
                     onPressed: () {
                       saveTimetable();
                     },
-                    icon: Icon(Icons.save),
-                    label: Text(
+                    icon: const Icon(Icons.save),
+                    label: const Text(
                       'Save',
                       style: TextStyle(
                         fontSize: 14.0,
@@ -328,9 +332,9 @@ class _StudentTimetableState extends State<StudentTimetable> {
                 final meeting = upcomingMeetings[index];
                 return Card(
                   elevation: 4,
-                  margin: EdgeInsets.all(16),
+                  margin: const EdgeInsets.all(16),
                   child: Padding(
-                    padding: EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
                         // Icon and title
@@ -347,19 +351,19 @@ class _StudentTimetableState extends State<StudentTimetable> {
                             color: Colors.white,
                           ),
                         ),
-                        SizedBox(width: 16),
+                        const SizedBox(width: 16),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               meeting['title'],
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 8),
-                            Text(
+                            const SizedBox(height: 8),
+                            const Text(
                               'Friday, April 7 2023', // replace with actual date and time
                               style: TextStyle(
                                 fontSize: 14,
