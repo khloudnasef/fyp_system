@@ -1,23 +1,19 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:fyp_system2/login.dart';
-import 'package:fyp_system2/studenthome.dart';
-import 'package:fyp_system2/welcoming.dart';
 
 import 'chatbot.dart';
+import 'welcoming.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(MyApp());
+
+  runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
-}
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
-class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -26,7 +22,7 @@ class _MyAppState extends State<MyApp> {
         primaryColor: Colors.red,
       ),
       routes: {
-        '/chatbot': (context) => ChatBot(),
+        '/chatbot': (context) => const ChatBot(),
       },
       home: WelcomePage(),
     );
