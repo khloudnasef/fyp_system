@@ -251,65 +251,59 @@ class _LoginPageState extends State<LoginPage> {
 
 void route(BuildContext context) {
   User? user = FirebaseAuth.instance.currentUser;
-
-  if (user != null) {
-    FirebaseFirestore.instance
-        .collection('project_coordinators')
-        .doc(user.uid)
-        .get()
-        .then((DocumentSnapshot documentSnapshot) {
-      if (documentSnapshot.exists) {
-        String name = documentSnapshot.get('name');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProjectCoordinatorHome(name: name),
-          ),
-        );
-      } else {
-        FirebaseFirestore.instance
-            .collection('students')
-            .where('userId', isEqualTo: user.uid)
-            .get()
-            .then((QuerySnapshot querySnapshot) {
-          if (querySnapshot.docs.isNotEmpty) {
-            // Check if the retrieved student document corresponds to the current user
-            bool isCurrentUser = querySnapshot.docs[0].id == user.uid;
-
-            if (isCurrentUser) {
-              String name = querySnapshot.docs[0].get('studentName');
+  FirebaseFirestore.instance
+      .collection('project_coordinators')
+      .doc(user!.uid)
+      .get()
+      .then((DocumentSnapshot documentSnapshot) {
+    if (documentSnapshot.exists) {
+      String name = documentSnapshot.get('name');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProjectCoordinatorHome(name: name),
+        ),
+      );
+    } else {
+      FirebaseFirestore.instance
+          .collection('students')
+          .where('userId',
+              isEqualTo: user.uid) // Query for students with matching user ID
+          .get()
+          .then((QuerySnapshot querySnapshot) {
+        if (querySnapshot.docs.isNotEmpty) {
+          // Retrieve the first document with matching user ID
+          DocumentSnapshot studentSnapshot = querySnapshot.docs.first;
+          String name = studentSnapshot.get('studentName');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => StudentHome(name: name),
+            ),
+          );
+        } else {
+          FirebaseFirestore.instance
+              .collection('supervisors')
+              .where('userId',
+                  isEqualTo:
+                      user.uid) // Get the document for the logged-in supervisor
+              .get()
+              .then((QuerySnapshot supervisorQuerySnapshot) {
+            if (supervisorQuerySnapshot.docs.isNotEmpty) {
+              String name =
+                  supervisorQuerySnapshot.docs[0].get('supervisorName');
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => StudentHome(name: name),
+                  builder: (context) => SupervisorHome(name: name),
                 ),
               );
             } else {
               print('Invalid user role');
             }
-          } else {
-            FirebaseFirestore.instance
-                .collection('supervisors')
-                .where('userId', isEqualTo: user.uid)
-                .get()
-                .then((QuerySnapshot querySnapshot) {
-              if (querySnapshot.docs.isNotEmpty) {
-                String name = querySnapshot.docs[0].get('supervisorName');
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SupervisorHome(name: name),
-                  ),
-                );
-              } else {
-                print('Invalid user role');
-              }
-            });
-          }
-        });
-      }
-    });
-  } else {
-    print('User not logged in');
-  }
+          });
+        }
+      });
+    }
+  });
 }

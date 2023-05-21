@@ -10,13 +10,14 @@ import 'studenthome.dart';
 import 'package:excel/excel.dart';
 import 'package:spreadsheet_decoder/spreadsheet_decoder.dart';
 import 'package:path/path.dart';
+import '../supervisorhome.dart';
 
 class ProjectCoordinatorHome extends StatelessWidget {
   final String name;
   const ProjectCoordinatorHome({Key? key, required this.name})
       : super(key: key);
 
-  Future<void> handleUpload(BuildContext context) async {
+  Future<void> handleUploadStudents(BuildContext context) async {
     try {
       final FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -33,17 +34,10 @@ class ProjectCoordinatorHome extends StatelessWidget {
         final Sheet studentSheet = excel.tables['Student']!;
         final List<dynamic> studentRows = studentSheet.rows;
 
-        // Assuming the supervisor details are in the second sheet
-        final Sheet supervisorSheet = excel.tables['Supervisor']!;
-        final List<dynamic> supervisorRows = supervisorSheet.rows;
-
+        final auth = FirebaseAuth.instance;
         final firestore = FirebaseFirestore.instance;
-        await Firebase
-            .initializeApp(); // Initialize Firebase (if not done already)
 
-        final FirebaseAuth auth = FirebaseAuth.instance;
-
-        // remove the first row in studentRows
+        // Remove the first row in studentRows
         studentRows.removeAt(0);
 
         for (final studentRow in studentRows) {
@@ -55,74 +49,118 @@ class ProjectCoordinatorHome extends StatelessWidget {
           final supervisorName = studentRow[5].value.toString();
           final projectTitle = studentRow[6].value.toString();
 
-          // Create a new document in the "students" collection
-          final studentDoc = await firestore.collection('students').add({
-            'studentId': studentId,
-            'studentName': studentName,
-            'studentEmail': studentEmail,
-            'studentPassword': studentPassword,
-            'supervisorId': supervisorId,
-            'supervisorName': supervisorName,
-            'projectTitle': projectTitle,
-          });
+          // Check if the student already exists
+          final studentSnapshot =
+              await firestore.collection('students').doc(studentId).get();
 
-          // Create user account for the student in Firebase Authentication
-          await auth.createUserWithEmailAndPassword(
-            email: studentEmail,
-            password: studentPassword,
-          );
+          if (!studentSnapshot.exists) {
+            // Create user in Firebase Authentication
+            final UserCredential studentAuthResult =
+                await auth.createUserWithEmailAndPassword(
+              email: studentEmail,
+              password: studentPassword,
+            );
 
-          // Associate the student's document ID with their user ID in a separate collection
-          await firestore.collection('studentUsers').doc(studentDoc.id).set({
-            'userId': auth.currentUser!.uid,
-          });
-        }
+            // Get the newly created student user's ID
+            final studentUserId = studentAuthResult.user!.uid;
 
-        supervisorRows.removeAt(0);
-
-        // Upload supervisor details to Firebase
-        for (final supervisorRow in supervisorRows) {
-          // get supervisorId, supervisorName, supervisorEmail, supervisorPassword
-          final supervisorId = supervisorRow[0].value.toString();
-          final supervisorName = supervisorRow[1].value.toString();
-          final supervisorEmail = supervisorRow[2].value.toString();
-          final supervisorPassword = supervisorRow[3].value.toString();
-          final supervisorContact = supervisorRow[4].value.toString();
-
-          // Create a new document in the "supervisors" collection
-          final supervisorDoc = await firestore.collection('supervisors').add({
-            'supervisorId': supervisorId,
-            'supervisorName': supervisorName,
-            'supervisorEmail': supervisorEmail,
-            'supervisorPassword': supervisorPassword,
-            'supervisorContact': supervisorContact,
-          });
-
-          // Create user account for the supervisor in Firebase Authentication
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-            email: supervisorEmail,
-            password: supervisorPassword,
-          );
-
-          // Associate the supervisor's document ID with their user ID in a separate collection
-          await firestore
-              .collection('supervisorUsers')
-              .doc(supervisorDoc.id)
-              .set({
-            'userId': FirebaseAuth.instance.currentUser!.uid,
-          });
+            // Create a new document in the "students" collection with the studentId as the document ID
+            await firestore.collection('students').doc(studentId).set({
+              'studentId': studentId,
+              'studentName': studentName,
+              'studentEmail': studentEmail,
+              'supervisorId': supervisorId,
+              'supervisorName': supervisorName,
+              'projectTitle': projectTitle,
+              'userId':
+                  studentUserId, // Store the Firebase Authentication user ID
+            });
+          }
         }
 
         // Show success message or navigate to the next screen
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload successful')),
+          SnackBar(content: Text('Student details upload successful')),
         );
       }
     } catch (e) {
       // Handle error
       print(e.toString());
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed')),
+        SnackBar(content: Text('Student details upload failed')),
+      );
+    }
+  }
+
+  Future<void> handleUploadSupervisors(BuildContext context) async {
+    try {
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+        withData: true,
+      );
+
+      if (result != null) {
+        final PlatformFile file = result.files.first;
+        final bytes = file.bytes!;
+        final excel = Excel.decodeBytes(bytes);
+
+        // Assuming the supervisor details are in the first sheet
+        final Sheet supervisorSheet = excel.tables['Supervisor']!;
+        final List<dynamic> supervisorRows = supervisorSheet.rows;
+
+        final auth = FirebaseAuth.instance;
+        final firestore = FirebaseFirestore.instance;
+
+        // Remove the first row in supervisorRows
+        supervisorRows.removeAt(0);
+
+        // Upload supervisor details to Firebase
+        for (final supervisorRow in supervisorRows) {
+          // Get supervisorId, supervisorName, supervisorEmail, supervisorPassword
+          final supervisorId = supervisorRow[0].value.toString();
+          final supervisorName = supervisorRow[1].value.toString();
+          final supervisorEmail = supervisorRow[2].value.toString();
+          final supervisorPassword = supervisorRow[3].value.toString();
+          final supervisorContact = supervisorRow[4].value.toString();
+
+          // Check if the supervisor already exists
+          final supervisorSnapshot =
+              await firestore.collection('supervisors').doc(supervisorId).get();
+
+          if (!supervisorSnapshot.exists) {
+            // Create user in Firebase Authentication
+            final UserCredential supervisorAuthResult =
+                await auth.createUserWithEmailAndPassword(
+              email: supervisorEmail,
+              password: supervisorPassword,
+            );
+
+            // Get the newly created supervisor user's ID
+            final supervisorUserId = supervisorAuthResult.user!.uid;
+
+            // Create a new document in the "supervisors" collection with the supervisorId as the document ID
+            await firestore.collection('supervisors').doc(supervisorId).set({
+              'supervisorId': supervisorId,
+              'supervisorName': supervisorName,
+              'supervisorEmail': supervisorEmail,
+              'supervisorContact': supervisorContact,
+              'userId':
+                  supervisorUserId, // Store the Firebase Authentication user ID
+            });
+          }
+        }
+
+        // Show success message or navigate to the next screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Supervisor details upload successful')),
+        );
+      }
+    } catch (e) {
+      // Handle error
+      print(e.toString());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Supervisor details upload failed')),
       );
     }
   }
@@ -178,7 +216,7 @@ class ProjectCoordinatorHome extends StatelessWidget {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 10),
             child: Text(
-              '* Please upload using excel format',
+              '* Please upload using excel format (.xlsx)',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),
@@ -233,24 +271,61 @@ class ProjectCoordinatorHome extends StatelessWidget {
                                   ),
                                 ),
                                 SizedBox(height: 16),
-                                Align(
-                                  alignment: Alignment.bottomRight,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      // Handle upload button tap
-                                      handleUpload(context);
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      primary: Colors.red,
-                                      onPrimary: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(16.0),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Flexible(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          // Handle upload students button tap
+                                          handleUploadStudents(context);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          primary: Colors.red,
+                                          onPrimary: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(16.0),
+                                          ),
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: 10.0,
+                                            horizontal: 12.0,
+                                          ),
+                                        ),
+                                        icon: Icon(Icons.cloud_upload),
+                                        label: Text(
+                                          'Students',
+                                        ),
                                       ),
                                     ),
-                                    icon: Icon(Icons.cloud_upload),
-                                    label: Text('Upload'),
-                                  ),
+                                    SizedBox(width: 8),
+                                    Flexible(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          // Handle upload supervisors button tap
+                                          handleUploadSupervisors(context);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          primary: Colors.red,
+                                          onPrimary: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(16.0),
+                                          ),
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: 10.0,
+                                            horizontal: 12.0,
+                                          ),
+                                        ),
+                                        icon: Icon(Icons.cloud_upload),
+                                        label: Text(
+                                          'Supervisors',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

@@ -19,6 +19,7 @@ class StudentHome extends StatefulWidget {
 
 class _StudentHomeState extends State<StudentHome> {
   int _selectedIndex = 0;
+  String? supervisorName;
 
   static const List<Widget> _widgetOptions = <Widget>[
     SizedBox.shrink(),
@@ -64,12 +65,46 @@ class _StudentHomeState extends State<StudentHome> {
     }
   }
 
+  void fetchSupervisorName() {
+    User? user = FirebaseAuth.instance.currentUser;
+    FirebaseFirestore.instance
+        .collection('students')
+        .where('userId', isEqualTo: user!.uid)
+        .get()
+        .then((QuerySnapshot studentQuerySnapshot) {
+      if (studentQuerySnapshot.docs.isNotEmpty) {
+        String supervisorId = studentQuerySnapshot.docs[0].get('supervisorId');
+        FirebaseFirestore.instance
+            .collection('supervisors')
+            .where('supervisorId', isEqualTo: supervisorId)
+            .get()
+            .then((QuerySnapshot supervisorQuerySnapshot) {
+          if (supervisorQuerySnapshot.docs.isNotEmpty) {
+            String supervisorName =
+                supervisorQuerySnapshot.docs[0].get('supervisorName');
+            setState(() {
+              this.supervisorName = supervisorName;
+            });
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchSupervisorName(); // Call the method to fetch the supervisor's name
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(60.0),
         child: AppBar(
           backgroundColor: Colors.red,
+          automaticallyImplyLeading: false,
           title: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,6 +137,13 @@ class _StudentHomeState extends State<StudentHome> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Supervised by: $supervisorName',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.normal),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
