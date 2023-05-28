@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
 import 'models/timetable_model.dart';
 import 'models/student_model.dart';
+import 'models/meeting_model.dart';
 import 'utils/sort_time_array.dart';
 
 class BookConsultationTest extends StatefulWidget {
@@ -15,6 +15,8 @@ class BookConsultationTest extends StatefulWidget {
 }
 
 class _BookConsultationTestState extends State<BookConsultationTest> {
+  TimetableModel? studTimetable;
+  TimetableModel? svTimetable;
   final auth = FirebaseAuth.instance;
   final db = FirebaseFirestore.instance;
   final reasonController = TextEditingController();
@@ -106,6 +108,17 @@ class _BookConsultationTestState extends State<BookConsultationTest> {
     return commonFreeTimes;
   }
 
+  Future<void> saveConfirmedMeeting(MeetingModel meeting) async {
+    final meetingsCollection = db.collection('meetings');
+    await meetingsCollection.add({
+      'studentName': meeting.studentName,
+      'reason': meeting.reason,
+      'day': meeting.day,
+      'date': meeting.date,
+      'time': meeting.time,
+    });
+  }
+
   @override
   void dispose() {
     reasonController.dispose();
@@ -166,11 +179,12 @@ class _BookConsultationTestState extends State<BookConsultationTest> {
                           return Center(child: Text(snapshot.toString()));
                         } else {
                           final svID = student.supervisorId;
+                          //final studentData = student!;
 
                           return FutureBuilder<List<TimetableModel?>>(
                             future: Future.wait([
                               readStudentTimetable(),
-                              readSupervisorTimetable(svID)
+                              readSupervisorTimetable(student.supervisorId)
                             ]),
                             builder: (context, snapshot) {
                               final timetables = snapshot.data;
@@ -183,33 +197,44 @@ class _BookConsultationTestState extends State<BookConsultationTest> {
                                   return Center(
                                       child: Text(snapshot.toString()));
                                 } else {
-                                  final studTimetable = timetables[0]!;
-                                  final svTimetable = timetables[1]!;
+                                  final studTimetable1 = timetables[0];
+                                  studTimetable = timetables[0];
+                                  final svTimetable1 = timetables[1];
+                                  svTimetable = timetables[1];
+                                  if (studTimetable == null ||
+                                      svTimetable == null) {
+                                    // Error handling
+                                    return Center(
+                                        child: Text('Timetables not found'));
+                                  }
+                                  final currentDate = DateTime.now();
 
                                   String currDay = '...';
                                   String freeTime = '...';
                                   Map<String, String> freeDaysAndTime = {};
-                                  String todayStr =
-                                      DateFormat('EEEE').format(DateTime.now());
-                                  int today = 0;
+                                  final todayStr =
+                                      DateFormat('EEEE').format(currentDate);
+                                  final todayIndex = days.indexOf(todayStr);
 
-                                  days.asMap().forEach((key, value) {
-                                    if (value == todayStr) today = key;
-                                  });
+                                  //String todayStr =
+                                  //DateFormat('EEEE').format(DateTime.now());
+                                  //int today = 0;
 
-                                  for (var day = today;
-                                      day < days.length;
-                                      day++) {
-                                    currDay = days[day];
+                                  for (var dayIndex = todayIndex;
+                                      dayIndex < days.length;
+                                      dayIndex++) {
+                                    final day = days[dayIndex];
+                                    currDay = DateFormat('MMMM dd').format(
+                                        currentDate.add(Duration(
+                                            days: dayIndex - todayIndex)));
 
                                     final freeTimes =
-                                        findAndSortCommonFreeTimes(currDay,
-                                            studTimetable, svTimetable);
+                                        findAndSortCommonFreeTimes(
+                                            day, studTimetable!, svTimetable!);
                                     if (freeTimes.isNotEmpty) {
                                       // Get the first free time of the day
                                       freeTime = freeTimes[0];
-                                      freeDaysAndTime.addEntries(
-                                          [MapEntry(currDay, freeTime)]);
+                                      freeDaysAndTime[day] = freeTime;
                                     }
                                   }
 
@@ -218,6 +243,15 @@ class _BookConsultationTestState extends State<BookConsultationTest> {
                                       shrinkWrap: true,
                                       itemCount: freeDaysAndTime.length,
                                       itemBuilder: (context, index) {
+                                        final day = freeDaysAndTime.keys
+                                            .elementAt(index);
+                                        final time = freeDaysAndTime.values
+                                            .elementAt(index);
+                                        final formattedDay =
+                                            DateFormat('MMMM dd').format(
+                                                currentDate.add(Duration(
+                                                    days: days.indexOf(day) -
+                                                        todayIndex)));
                                         return Card(
                                             elevation: 5,
                                             shadowColor: Colors.grey[400],
@@ -228,7 +262,7 @@ class _BookConsultationTestState extends State<BookConsultationTest> {
                                                   () => _selectedTimeSlot =
                                                       value as int),
                                               title: Text(
-                                                  '${freeDaysAndTime.keys.elementAt(index)}, ${freeDaysAndTime.values.elementAt(index)}'),
+                                                  '$formattedDay - $day, $time'),
                                             ));
                                       });
                                 }
@@ -264,7 +298,44 @@ class _BookConsultationTestState extends State<BookConsultationTest> {
                           child: const Text('Reset')),
                       const SizedBox(width: 8),
                       ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () async {
+                            if (_selectedTimeSlot != -1) {
+                              final student = await readStudent();
+                              final currentDate = DateTime.now();
+                              final selectedDay = days[_selectedTimeSlot];
+                              final selectedDate = DateFormat('MMMM dd').format(
+                                  currentDate
+                                      .add(Duration(days: _selectedTimeSlot)));
+                              print("studTimetable.........................");
+                              print(studTimetable);
+                              final selectedTime = findAndSortCommonFreeTimes(
+                                  selectedDay,
+                                  studTimetable!,
+                                  svTimetable!)[_selectedTimeSlot];
+
+                              final confirmedMeeting = MeetingModel(
+                                studentName: student?.studentName ??
+                                    '', // Replace with the actual field from StudentModel
+                                reason: reasonController.text,
+                                day: selectedDay,
+                                date: selectedDate,
+                                time: selectedTime,
+                              );
+
+                              await saveConfirmedMeeting(confirmedMeeting);
+
+                              reasonController.clear();
+                              setState(() => _selectedTimeSlot = -1);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content:
+                                        Text('Meeting scheduled successfully')),
+                              );
+
+                              // Navigate back to the previous screen
+                              Navigator.pop(context, confirmedMeeting);
+                            }
+                          },
                           style: ElevatedButton.styleFrom(
                               shape: const StadiumBorder(),
                               backgroundColor: Colors.red,

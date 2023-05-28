@@ -165,6 +165,165 @@ class ProjectCoordinatorHome extends StatelessWidget {
     }
   }
 
+  Future<void> handleUploadImportantDueDates(BuildContext context) async {
+    try {
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+        withData: true,
+      );
+
+      if (result != null) {
+        final PlatformFile file = result.files.first;
+        final bytes = file.bytes!;
+        final excel = Excel.decodeBytes(bytes);
+
+        // Assuming the important due dates are in the first sheet
+        final Sheet dueDatesSheet = excel.tables[excel.tables.keys.first]!;
+        final List<dynamic> dueDatesRows = dueDatesSheet.rows;
+
+        final firestore = FirebaseFirestore.instance;
+
+        // Remove the first row in dueDatesRows if it contains headers
+        if (dueDatesRows.isNotEmpty) {
+          dueDatesRows.removeAt(0);
+        }
+
+        // Get the existing due dates from Firebase
+        final QuerySnapshot dueDatesSnapshot =
+            await firestore.collection('important_due_dates').get();
+
+        // Create a map of existing due dates using the titles as keys
+        final Map<String, QueryDocumentSnapshot> existingDueDates = {
+          for (final doc in dueDatesSnapshot.docs) doc['title']: doc
+        };
+
+        // Update or create new due dates in Firebase
+        for (final dueDatesRow in dueDatesRows) {
+          // Get the due date information from the row
+          final title = dueDatesRow[0].value.toString();
+          final dueDate = dueDatesRow[1].value.toString();
+
+          // Check if the due date already exists in Firebase
+          if (existingDueDates.containsKey(title)) {
+            // Update the existing due date document
+            final existingDoc = existingDueDates[title]!;
+            await firestore
+                .collection('important_due_dates')
+                .doc(existingDoc.id)
+                .update({'dueDate': dueDate});
+          } else {
+            // Create a new document in the "important_due_dates" collection
+            await firestore.collection('important_due_dates').add({
+              'title': title,
+              'dueDate': dueDate,
+            });
+          }
+
+          // Remove the processed due date from existingDueDates map
+          existingDueDates.remove(title);
+        }
+
+        // Delete remaining due dates from Firebase that were not present in the updated Excel sheet
+        for (final doc in existingDueDates.values) {
+          await firestore
+              .collection('important_due_dates')
+              .doc(doc.id)
+              .delete();
+        }
+
+        // Show success message or navigate to the next screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Important due dates upload successful')),
+        );
+      }
+    } catch (e) {
+      // Handle error
+      print(e.toString());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Important due dates upload failed')),
+      );
+    }
+  }
+
+  Future<void> handleUploadDocumentation(BuildContext context) async {
+    try {
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+        withData: true,
+      );
+
+      if (result != null) {
+        final PlatformFile file = result.files.first;
+        final bytes = file.bytes!;
+        final excel = Excel.decodeBytes(bytes);
+
+        // Assuming the important due dates are in the first sheet
+        final Sheet dueDatesSheet = excel.tables[excel.tables.keys.first]!;
+        final List<dynamic> dueDatesRows = dueDatesSheet.rows;
+
+        final firestore = FirebaseFirestore.instance;
+
+        // Remove the first row in dueDatesRows if it contains headers
+        if (dueDatesRows.isNotEmpty) {
+          dueDatesRows.removeAt(0);
+        }
+
+        // Get the existing due dates from Firebase
+        final QuerySnapshot dueDatesSnapshot =
+            await firestore.collection('documentation').get();
+
+        // Create a map of existing due dates using the titles as keys
+        final Map<String, QueryDocumentSnapshot> existingDueDates = {
+          for (final doc in dueDatesSnapshot.docs) doc['title']: doc
+        };
+
+        // Update or create new due dates in Firebase
+        for (final dueDatesRow in dueDatesRows) {
+          // Get the due date information from the row
+          final title = dueDatesRow[0].value.toString();
+          final dueDate = dueDatesRow[1].value.toString();
+
+          // Check if the due date already exists in Firebase
+          if (existingDueDates.containsKey(title)) {
+            // Update the existing due date document
+            final existingDoc = existingDueDates[title]!;
+            await firestore
+                .collection('documentation')
+                .doc(existingDoc.id)
+                .update({'dueDate': dueDate});
+          } else {
+            // Create a new document in the "important_due_dates" collection
+            await firestore.collection('documentation').add({
+              'title': title,
+              'dueDate': dueDate,
+            });
+          }
+
+          // Remove the processed due date from existingDueDates map
+          existingDueDates.remove(title);
+        }
+
+        // Delete remaining due dates from Firebase that were not present in the updated Excel sheet
+        for (final doc in existingDueDates.values) {
+          await firestore.collection('documentation').doc(doc.id).delete();
+        }
+
+        // Show success message or navigate to the next screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Documentation upload successful')),
+        );
+      }
+    } catch (e) {
+      // Handle error
+      print(e.toString());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Documentation upload failed')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -177,7 +336,6 @@ class ProjectCoordinatorHome extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.account_circle),
                 SizedBox(width: 4),
                 Text('Project Coordinator'),
               ],
@@ -247,7 +405,7 @@ class ProjectCoordinatorHome extends StatelessWidget {
                             child: Icon(
                               Icons.account_circle,
                               color: Colors.white,
-                              size: 30,
+                              size: 35,
                             ),
                           ),
                           SizedBox(width: 16),
@@ -353,9 +511,9 @@ class ProjectCoordinatorHome extends StatelessWidget {
                             ),
                             padding: EdgeInsets.all(8.0),
                             child: Icon(
-                              Icons.account_circle,
+                              Icons.calendar_month,
                               color: Colors.white,
-                              size: 30,
+                              size: 35,
                             ),
                           ),
                           SizedBox(width: 16),
@@ -383,7 +541,7 @@ class ProjectCoordinatorHome extends StatelessWidget {
                                   alignment: Alignment.bottomRight,
                                   child: ElevatedButton.icon(
                                     onPressed: () {
-                                      // Handle upload button tap
+                                      handleUploadImportantDueDates(context);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       primary: Colors.red,
@@ -423,9 +581,9 @@ class ProjectCoordinatorHome extends StatelessWidget {
                             ),
                             padding: EdgeInsets.all(8.0),
                             child: Icon(
-                              Icons.account_circle,
+                              Icons.file_copy,
                               color: Colors.white,
-                              size: 30,
+                              size: 35,
                             ),
                           ),
                           SizedBox(width: 16),
@@ -453,7 +611,7 @@ class ProjectCoordinatorHome extends StatelessWidget {
                                   alignment: Alignment.bottomRight,
                                   child: ElevatedButton.icon(
                                     onPressed: () {
-                                      // Handle upload button tap
+                                      handleUploadDocumentation(context);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       primary: Colors.red,

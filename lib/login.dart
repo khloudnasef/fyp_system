@@ -25,17 +25,6 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => WelcomePage()),
-          ),
-        ),
-        title: Text('Login'),
-        backgroundColor: Colors.redAccent,
-      ),
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
@@ -54,6 +43,20 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         SizedBox(
                           height: 30,
+                        ),
+                        Align(
+                          alignment: Alignment.topLeft,
+                          child: IconButton(
+                            icon: Icon(Icons.arrow_back),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => WelcomePage()),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 20,
                         ),
                         Image.asset(
                           'assets/fyplogo.png',
@@ -190,26 +193,6 @@ class _LoginPageState extends State<LoginPage> {
                                 child: CircularProgressIndicator(
                               color: Colors.white,
                             ))),
-                        Row(
-                          children: <Widget>[
-                            const Text('Don\'t have an account?'),
-                            TextButton(
-                              child: const Text(
-                                'Sign Up',
-                                style:
-                                    TextStyle(fontSize: 20, color: Colors.red),
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => Register()),
-                                );
-                              },
-                            )
-                          ],
-                          mainAxisAlignment: MainAxisAlignment.center,
-                        ),
                       ],
                     ),
                   ),

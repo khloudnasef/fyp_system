@@ -4,6 +4,7 @@ import 'package:fyp_system2/studentfiles.dart';
 import 'package:fyp_system2/studentprofile.dart';
 import 'package:fyp_system2/ttstudent.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 import 'login.dart';
 import 'chatbot.dart';
@@ -21,47 +22,26 @@ class _StudentHomeState extends State<StudentHome> {
   int _selectedIndex = 0;
   String? supervisorName;
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    SizedBox.shrink(),
-    SizedBox.shrink(),
-    SizedBox.shrink(),
-    SizedBox.shrink(),
-  ];
+  List<DocumentSnapshot> dueDates = [];
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  @override
+  void initState() {
+    super.initState();
+    fetchDueDates();
+    fetchSupervisorName(); // Call fetchSupervisorName() here
+  }
 
-    switch (index) {
-      case 0:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => StudentHome(name: widget.name)),
-        );
-        break;
-      case 1:
-        // Handle "Calendar" icon tap
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => StudentTimetable()),
-        );
-        break;
-      case 2:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => StudentFiles()),
-        );
-        break;
-      case 3:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => StudentProfile()),
-        );
-        break;
-      default:
-        break;
+  Future<void> fetchDueDates() async {
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('important_due_dates')
+          .get();
+
+      setState(() {
+        dueDates = querySnapshot.docs;
+      });
+    } catch (error) {
+      print('Error fetching due dates: $error');
     }
   }
 
@@ -91,10 +71,49 @@ class _StudentHomeState extends State<StudentHome> {
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    fetchSupervisorName(); // Call the method to fetch the supervisor's name
+  static const List<Widget> _widgetOptions = <Widget>[
+    SizedBox.shrink(),
+    SizedBox.shrink(),
+    SizedBox.shrink(),
+    SizedBox.shrink(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => StudentHome(name: widget.name)),
+        );
+        break;
+      case 1:
+        // Handle "Calendar" icon tap
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => StudentTimetable(name: widget.name)),
+        );
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => StudentFiles()),
+        );
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => StudentProfile()),
+        );
+        break;
+      default:
+        break;
+    }
   }
 
   @override
@@ -134,91 +153,97 @@ class _StudentHomeState extends State<StudentHome> {
           ],
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Supervised by: $supervisorName',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.normal),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Announcements',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+      body: Container(
+        height: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                'Supervised by: $supervisorName',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.normal),
               ),
             ),
-          ),
-          Card(
-            elevation: 5.0,
-            shadowColor: Colors.grey[400],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15.0),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                'Announcements',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            margin: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.red,
+            Expanded(
+              child: ListView.builder(
+                itemCount: dueDates.length,
+                itemBuilder: (context, index) {
+                  final doc = dueDates[index];
+                  final title = doc[
+                      'title']; // Make sure 'title' field exists in the document
+                  final dueDate = doc[
+                      'dueDate']; // Make sure 'dueDate' field exists in the document
+
+                  return Card(
+                    elevation: 5.0,
+                    shadowColor: Colors.grey[400],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15.0),
                     ),
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(
-                      Icons.paste,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Chapter 1 Report Due Date',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Row(
+                    margin:
+                        EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
                         children: [
-                          Icon(Icons.access_time, size: 16),
-                          SizedBox(width: 4),
-                          Text(
-                            'Due on April 15, 2023',
-                            style: TextStyle(
-                              fontSize: 16,
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.red,
                             ),
+                            padding: EdgeInsets.all(8.0),
+                            child: Icon(
+                              Icons.paste,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.access_time, size: 16),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Due on $dueDate',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Posted on April 4, 2023',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  );
+                },
               ),
-            ),
-          ),
-          Center(
-            child: _widgetOptions.elementAt(_selectedIndex),
-          ),
-        ],
+            )
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[

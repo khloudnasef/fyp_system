@@ -1,23 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-import 'bookconsultation.dart';
+import 'models/timetable_model.dart';
+import 'models/student_model.dart';
+import 'models/meeting_model.dart';
+import 'utils/sort_time_array.dart';
+import 'package:intl/intl.dart';
+import 'studenthome.dart';
+import 'studentfiles.dart';
+import 'studentprofile.dart';
+import 'login.dart';
 import 'bookconsultation_test.dart';
 
 class StudentTimetable extends StatefulWidget {
-  const StudentTimetable({super.key});
+  const StudentTimetable({Key? key, required this.name}) : super(key: key);
+  final String name;
 
   @override
   State<StudentTimetable> createState() => _StudentTimetableState();
 }
 
 class _StudentTimetableState extends State<StudentTimetable> {
+  List<MeetingModel> upcomingMeetings = [];
+
   // The number of hours in a day
   static const int _numberOfHours = 12;
 
   // The number of days in a week
   static const int _numberOfDays = 7;
+  final FirebaseFirestore db = FirebaseFirestore.instance;
 
   // The times for each hour of the day
   final List<String> _times = [
@@ -50,18 +61,12 @@ class _StudentTimetableState extends State<StudentTimetable> {
   List<List<String>> _timetableSlots = List.generate(
       _numberOfDays, (dayIndex) => List.filled(_numberOfHours, ''));
 
-  final List<Map<String, dynamic>> upcomingMeetings = [
-    {
-      'icon': Icons.calendar_today,
-      'title': 'Review Chapter 1',
-      'date': 'April 10, 2023, 3:00 PM',
-    },
-  ];
   @override
   void initState() {
     super.initState();
     // Load the timetable data when the widget initializes
     loadTimetable();
+    fetchUpcomingMeetings();
   }
 
   void loadTimetable() async {
@@ -156,6 +161,42 @@ class _StudentTimetableState extends State<StudentTimetable> {
     }
   }
 
+  int _selectedIndex = 1;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StudentHome(name: widget.name),
+          ),
+        );
+        break;
+      case 1:
+        // Handle "Calendar" icon tap
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => StudentFiles()),
+        );
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => StudentProfile()),
+        );
+        break;
+      default:
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -203,7 +244,8 @@ class _StudentTimetableState extends State<StudentTimetable> {
                                   _daysOfWeek[day],
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -283,7 +325,8 @@ class _StudentTimetableState extends State<StudentTimetable> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const BookConsultationTest()),
+                          builder: (context) => const BookConsultationTest(),
+                        ),
                       );
                     },
                     label: const Text(
@@ -299,7 +342,7 @@ class _StudentTimetableState extends State<StudentTimetable> {
                 ),
                 Positioned(
                   // move button to bottom right corner
-                  bottom: 200,
+                  bottom: 150,
                   right: 20,
                   child: ElevatedButton.icon(
                     onPressed: () {
@@ -325,61 +368,122 @@ class _StudentTimetableState extends State<StudentTimetable> {
                 ),
               ],
             ),
+
             // Upcoming Meetings Tab
-            ListView.builder(
-              itemCount: upcomingMeetings.length,
-              itemBuilder: (context, index) {
-                final meeting = upcomingMeetings[index];
-                return Card(
-                  elevation: 4,
-                  margin: const EdgeInsets.all(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        // Icon and title
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(32),
-                          ),
-                          child: Icon(
-                            meeting['icon'],
-                            size: 32,
-                            color: Colors.white,
+            FutureBuilder<void>(
+              future: fetchUpcomingMeetings(),
+              builder: (context, snapshot) {
+                // if (snapshot.connectionState == ConnectionState.waiting) {
+                //   return const Center(child: CircularProgressIndicator());
+                // } else
+                if (snapshot.hasError) {
+                  return const Text('Error fetching upcoming meetings');
+                } else {
+                  return ListView.builder(
+                    itemCount: upcomingMeetings.length,
+                    itemBuilder: (context, index) {
+                      final meeting = upcomingMeetings[index];
+                      return Card(
+                        elevation: 4,
+                        margin: const EdgeInsets.all(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(32),
+                                ),
+                                child: const Icon(
+                                  Icons.calendar_today,
+                                  size: 32,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      meeting.reason,
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      '${meeting.day}, ${meeting.date}, ${meeting.time}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Student: ${meeting.studentName}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              meeting['title'],
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Friday, April 7 2023', // replace with actual date and time
-                              style: TextStyle(
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                      );
+                    },
+                  );
+                }
               },
             ),
           ],
         ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today),
+              label: 'Timetable',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.folder),
+              label: 'Files',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          selectedItemColor: Colors.black,
+          unselectedItemColor: Color.fromARGB(255, 103, 101, 101),
+          type: BottomNavigationBarType.fixed,
+          onTap: _onItemTapped,
+        ),
       ),
     );
+  }
+
+  Future<void> fetchUpcomingMeetings() async {
+    final meetingsCollection = db.collection('meetings');
+    final querySnapshot = await meetingsCollection.get();
+    final meetings = querySnapshot.docs
+        .map((doc) => MeetingModel.fromMap(doc.data()))
+        .toList();
+
+    print("meetings............................");
+    print(meetings);
+
+    setState(() {
+      upcomingMeetings = meetings;
+    });
   }
 }

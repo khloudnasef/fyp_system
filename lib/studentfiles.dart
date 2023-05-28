@@ -1,4 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'file_upload.dart';
 
 class StudentFiles extends StatefulWidget {
   const StudentFiles({super.key});
@@ -8,17 +16,28 @@ class StudentFiles extends StatefulWidget {
 }
 
 class _StudentFilesState extends State<StudentFiles> {
+  List<Widget> documentationCards = [];
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.red,
-        title: Text('Student Files'),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Card(
+  void initState() {
+    super.initState();
+    fetchDocumentationCards().then((value) {});
+  }
+
+  Future<void> fetchDocumentationCards() async {
+    try {
+      final QuerySnapshot documentationSnapshot =
+          await FirebaseFirestore.instance.collection('documentation').get();
+
+      print("834798374983748937498374987347237943");
+      print(documentationSnapshot.docs.length);
+
+      setState(() {
+        documentationCards = documentationSnapshot.docs.map((doc) {
+          final title = doc['title'];
+          final dueDate = doc['dueDate'];
+
+          return Card(
             elevation: 5.0,
             shadowColor: Colors.grey[400],
             shape: RoundedRectangleBorder(
@@ -46,7 +65,7 @@ class _StudentFilesState extends State<StudentFiles> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Chapter 1 Report',
+                        title,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -58,7 +77,7 @@ class _StudentFilesState extends State<StudentFiles> {
                           Icon(Icons.access_time, size: 16),
                           SizedBox(width: 4),
                           Text(
-                            'Last updated: April 3 2023',
+                            'Due Date: $dueDate',
                             style: TextStyle(
                               fontSize: 14,
                             ),
@@ -68,7 +87,12 @@ class _StudentFilesState extends State<StudentFiles> {
                       SizedBox(height: 16),
                       GestureDetector(
                         onTap: () {
-                          // Handle view button tap
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    FileUploadPage(title: title)),
+                          );
                         },
                         child: Container(
                           decoration: BoxDecoration(
@@ -92,7 +116,24 @@ class _StudentFilesState extends State<StudentFiles> {
                 ],
               ),
             ),
-          ),
+          );
+        }).toList();
+      });
+    } catch (error) {
+      print('Error fetching documentation: $error');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.red,
+        title: Text('Student Files'),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Card(
             elevation: 5.0,
             shadowColor: Colors.grey[400],
@@ -168,6 +209,11 @@ class _StudentFilesState extends State<StudentFiles> {
               ),
             ),
           ),
+          Expanded(
+            child: ListView(
+              children: documentationCards,
+            ),
+          )
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -194,5 +240,58 @@ class _StudentFilesState extends State<StudentFiles> {
         type: BottomNavigationBarType.fixed,
       ),
     );
+  }
+}
+
+class PDFViewPage extends StatefulWidget {
+  final String url;
+  final String name;
+
+  const PDFViewPage({Key? key, required this.url, required this.name})
+      : super(key: key);
+
+  @override
+  State<PDFViewPage> createState() => _PDFViewPageState();
+}
+
+class _PDFViewPageState extends State<PDFViewPage> {
+  int? pages = 0;
+  int? currentPage = 0;
+  bool isReady = false;
+  String errorMessage = '';
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Text(widget.name),
+        ),
+        body: Container(
+          child: SfPdfViewer.network(widget.url),
+        )
+
+        // PDFView(
+        //   filePath: widget.url,
+        //   enableSwipe: true,
+        //   swipeHorizontal: true,
+        //   autoSpacing: false,
+        //   pageFling: false,
+        //   onRender: (_pages) {
+        //     setState(() {
+        //       pages = _pages;
+        //       isReady = true;
+        //     });
+        //   },
+        //   onError: (error) {
+        //     print(error.toString());
+        //   },
+        //   onPageError: (page, error) {
+        //     print('$page: ${error.toString()}');
+        //   },
+        //   onViewCreated: (PDFViewController pdfViewController) {
+        //     _controller.complete(pdfViewController);
+        //   },
+        //
+        // ),
+        );
   }
 }
