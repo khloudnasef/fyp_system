@@ -1,16 +1,11 @@
-# fyp_system2
+This a Flutter Application that  facilitates the clear and effective communication between supervisors and students 
+throughout the FYP process to prevent misunderstandings or information gaps that could cause delays.
+Thus, effective project communication and documentation are provided.
 
-A new Flutter project.
+some features include: 
+- FAQ Chat Bot
+- Chat Messaging Feature between supervisor and student
+- Schedule consultation with supervisor
+- Upload and Share reports, logbooks, etc.
+- Project coordinator upload all the nessacery detail through excel sheet (student & supervisor details, important due date, documentation needed)
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
