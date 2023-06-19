@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'addlogbooks.dart';
 import 'package:flutter/material.dart';
 import 'package:fyp_system2/utils/authservice.dart';
+import 'package:intl/intl.dart';
 
 class LogbookListPage extends StatefulWidget {
   const LogbookListPage({Key? key}) : super(key: key);
@@ -52,7 +53,8 @@ class _LogbookListPageState extends State<LogbookListPage> {
               return Card(
                 child: ListTile(
                   title: Text('Week $weekNumber'),
-                  subtitle: Text('Submitted: $submissionTime'),
+                  subtitle: Text(
+                      'Submitted: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.parse(submissionTime))}'),
                   // Add more details or actions as needed
                 ),
               );
@@ -70,6 +72,7 @@ class _LogbookListPageState extends State<LogbookListPage> {
           );
         },
         child: Icon(Icons.add),
+        backgroundColor: Colors.red,
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'listoflogbooks.dart';
 
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'file_upload.dart';
@@ -168,23 +169,15 @@ class _StudentFilesState extends State<StudentFiles> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.access_time, size: 16),
-                          SizedBox(width: 4),
-                          Text(
-                            'Last updated: April 3 2023',
-                            style: TextStyle(
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
                       SizedBox(height: 16),
                       GestureDetector(
                         onTap: () {
-                          // Handle view button tap
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LogbookListPage(),
+                            ),
+                          );
                         },
                         child: Container(
                           decoration: BoxDecoration(

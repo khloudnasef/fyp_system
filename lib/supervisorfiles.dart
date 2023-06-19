@@ -123,7 +123,7 @@ class _SupervisorFilesState extends State<SupervisorFiles> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.red,
-        title: Text('Student Files'),
+        title: Text('Files'),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -236,19 +236,6 @@ class _SupervisorFilesState extends State<SupervisorFiles> {
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.access_time, size: 16),
-                          SizedBox(width: 4),
-                          Text(
-                            'Last updated: April 3 2023',
-                            style: TextStyle(
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
                       ),
                       SizedBox(height: 16),
                       GestureDetector(

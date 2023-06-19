@@ -85,24 +85,34 @@ class _ChatScreenState extends State<ChatScreen> {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    FirebaseFirestore.instance.collection('chats').add({
+    String chatRoomId = generateChatRoomId(supervisorId, widget.studentId);
+
+    FirebaseFirestore.instance
+        .collection('chats')
+        .doc(chatRoomId)
+        .collection('messages')
+        .add({
       'senderId': user.uid,
       'senderName': supervisor ? chatWithSupervisorName : chatWithStudentName,
-      'receiverId': supervisorId,
       'message': message,
       'timestamp': DateTime.now(),
     });
   }
 
   Stream<QuerySnapshot> getChatMessages(String supervisorId) {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return Stream.empty();
+    String chatRoomId = generateChatRoomId(supervisorId, widget.studentId);
 
     return FirebaseFirestore.instance
         .collection('chats')
-        .where('receiverId', isEqualTo: supervisorId)
+        .doc(chatRoomId)
+        .collection('messages')
         .orderBy('timestamp', descending: true)
         .snapshots();
+  }
+
+  String generateChatRoomId(String supervisorId, String studentId) {
+    List<String> ids = [supervisorId, studentId]..sort();
+    return '${ids[0]}_${ids[1]}';
   }
 
   @override
@@ -115,7 +125,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(supervisor ? chatWithSupervisorName : chatWithStudentName),
+        title: Text(supervisor ? chatWithStudentName : chatWithSupervisorName),
         backgroundColor: Colors.red,
       ),
       body: Column(
@@ -144,25 +154,58 @@ class _ChatScreenState extends State<ChatScreen> {
                     String senderName = messages[index]['senderName'];
                     String message = messages[index]['message'];
                     DateTime timestamp = messages[index]['timestamp'].toDate();
+                    bool isSentByMe =
+                        senderId == FirebaseAuth.instance.currentUser?.uid;
 
-                    return ListTile(
-                      title: Text(
-                        senderName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
+                    return Align(
+                      alignment: isSentByMe
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        margin:
+                            EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                            bottomRight: Radius.circular(isSentByMe ? 0 : 20),
+                            topLeft: Radius.circular(isSentByMe ? 20 : 0),
+                          ),
+                          color: isSentByMe
+                              ? Colors.red.withOpacity(0.7)
+                              : Colors.grey[300],
                         ),
-                      ),
-                      subtitle: Text(message),
-                      trailing: Text(
-                        DateFormat('HH:mm').format(timestamp),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                        constraints: BoxConstraints(
+                            maxWidth:
+                                MediaQuery.of(context).size.width * 2 / 3),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              senderName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isSentByMe ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              message,
+                              style: TextStyle(
+                                color: isSentByMe ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              DateFormat('HH:mm').format(timestamp),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isSentByMe ? Colors.white : Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 16,
                       ),
                     );
                   },
