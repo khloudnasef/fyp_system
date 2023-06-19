@@ -31,6 +31,15 @@ class _BookConsultationTestState extends State<BookConsultationTest> {
   ];
   int _selectedTimeSlot = -1;
 
+  bool _isDisposed = false;
+
+  @override
+  void dispose() {
+    reasonController.dispose();
+    _isDisposed = true;
+    super.dispose();
+  }
+
   Future<StudentModel?> readStudent() async {
     final studCollection = db.collection('students');
     final currStudID = auth.currentUser!.uid;
@@ -117,12 +126,6 @@ class _BookConsultationTestState extends State<BookConsultationTest> {
       'date': meeting.date,
       'time': meeting.time,
     });
-  }
-
-  @override
-  void dispose() {
-    reasonController.dispose();
-    super.dispose();
   }
 
   @override

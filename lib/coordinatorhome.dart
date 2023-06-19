@@ -367,20 +367,20 @@ class ProjectCoordinatorHome extends StatelessWidget {
           )
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(height: 10),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10),
-            child: Text(
-              '* Please upload using excel format (.xlsx)',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(height: 10),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                '* Please upload using excel format (.xlsx)',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ),
-          ),
-          SizedBox(height: 10),
-          Expanded(
-            child: Padding(
+            SizedBox(height: 10),
+            Padding(
               padding: EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -600,7 +600,7 @@ class ProjectCoordinatorHome extends StatelessWidget {
                                 ),
                                 SizedBox(height: 8),
                                 Text(
-                                  'Add documentation that need to be sumbitted here',
+                                  'Add documentation that need to be submitted here',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey,
@@ -635,8 +635,8 @@ class ProjectCoordinatorHome extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

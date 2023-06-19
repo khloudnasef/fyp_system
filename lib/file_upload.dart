@@ -109,9 +109,18 @@ class _FileUploadPageState extends State<FileUploadPage> {
   }
 
   Widget buildUploadButton() {
-    return ElevatedButton(
+    return ElevatedButton.icon(
       onPressed: isUploading ? null : uploadFile,
-      child: isUploading ? CircularProgressIndicator() : Text('Upload'),
+      icon: Icon(Icons.cloud_upload),
+      label: isUploading ? CircularProgressIndicator() : Text('Upload'),
+      style: ElevatedButton.styleFrom(
+        primary: Colors.red,
+        onPrimary: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(32.0),
+        ),
+        padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+      ),
     );
   }
 
@@ -120,7 +129,7 @@ class _FileUploadPageState extends State<FileUploadPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (UploadedFile file in uploadedFiles)
-          GestureDetector(
+          InkWell(
             onTap: () {
               Navigator.push(
                 context,
@@ -138,7 +147,7 @@ class _FileUploadPageState extends State<FileUploadPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15.0),
               ),
-              margin: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -169,27 +178,28 @@ class _FileUploadPageState extends State<FileUploadPage> {
                       ],
                     ),
                     GestureDetector(
-                        onTap: () async {
-                          print("dksahdkshdlhasdlihsdl");
+                      onTap: () async {
+                        print("dksahdkshdlhasdlihsdl");
 
-                          setState(() {
-                            uploadedFiles.remove(file);
-                          });
-                          QuerySnapshot studentQuerySnapshot =
-                              await FirebaseFirestore.instance
-                                  .collection('files')
-                                  .where('fileName', isEqualTo: file.name)
-                                  .get();
-                          print("hjasdgusygduyasgdw7e837freuwfvd");
-                          print(studentQuerySnapshot.docs.first.id);
-                          FirebaseFirestore.instance
-                              .collection('files')
-                              .doc(studentQuerySnapshot.docs.first.id)
-                              .delete();
+                        setState(() {
+                          uploadedFiles.remove(file);
+                        });
+                        QuerySnapshot studentQuerySnapshot =
+                            await FirebaseFirestore.instance
+                                .collection('files')
+                                .where('fileName', isEqualTo: file.name)
+                                .get();
+                        print("hjasdgusygduyasgdw7e837freuwfvd");
+                        print(studentQuerySnapshot.docs.first.id);
+                        FirebaseFirestore.instance
+                            .collection('files')
+                            .doc(studentQuerySnapshot.docs.first.id)
+                            .delete();
 
-                          print(uploadedFiles.length);
-                        },
-                        child: Icon(Icons.delete_forever))
+                        print(uploadedFiles.length);
+                      },
+                      child: Icon(Icons.delete_forever),
+                    )
                   ],
                 ),
               ),
@@ -204,26 +214,31 @@ class _FileUploadPageState extends State<FileUploadPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Upload File'),
+        backgroundColor: Colors.red,
+        elevation: 0, // Remove app bar elevation
       ),
-      body: Center(
+      body: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                widget.title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+            Text(
+              widget.title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
+            SizedBox(height: 24.0), // Add spacing
+            Expanded(
+              child: buildFilePreview(),
+            ),
+            SizedBox(height: 24.0), // Add spacing
             buildUploadButton(),
-            buildFilePreview(),
           ],
         ),
       ),
+      backgroundColor: Colors.white, // Set background color
     );
   }
 }

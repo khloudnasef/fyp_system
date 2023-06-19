@@ -24,79 +24,109 @@ class _AddLogbookPageState extends State<AddLogbookPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Add Logbook'),
+        backgroundColor: Colors.red,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: startDateController,
-                decoration: InputDecoration(labelText: 'Start Date'),
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Please enter the start date';
-                  }
-                  return null;
-                },
-              ),
-              // Add more input fields for end date, tasks accomplished, tasks to be done, and supervisor remarks
-              TextFormField(
-                controller: endDateController,
-                decoration: InputDecoration(labelText: 'End Date'),
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Please enter the end date';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: tasksAccomplishedController,
-                decoration: InputDecoration(labelText: 'Tasks Accomplished'),
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Please enter the tasks accomplished';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: tasksToDoController,
-                decoration: InputDecoration(labelText: 'Tasks to be Done'),
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Please enter the tasks to be done';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: supervisorRemarksController,
-                decoration: InputDecoration(labelText: 'Supervisor Remarks'),
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Please enter the supervisor remarks';
-                  }
-                  return null;
-                },
-              ),
-
-              SizedBox(height: 16),
-
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // Save the logbook entry to the database
-                    saveLogbookEntry();
-
-                    Navigator.pop(context); // Return to LogbookListPage
-                  }
-                },
-                child: Text('Confirm'),
-              ),
-            ],
+      body: SingleChildScrollView(
+        // Wrap the Form with SingleChildScrollView
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: startDateController,
+                  decoration: InputDecoration(
+                    labelText: 'Start Date',
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value!.isEmpty) {
+                      return 'Please enter the start date';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                // Add more input fields with similar styling
+                TextFormField(
+                  controller: endDateController,
+                  decoration: InputDecoration(
+                    labelText: 'End Date',
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value!.isEmpty) {
+                      return 'Please enter the end date';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: tasksAccomplishedController,
+                  decoration: InputDecoration(
+                    labelText: 'Tasks Accomplished',
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value!.isEmpty) {
+                      return 'Please enter the tasks accomplished';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: tasksToDoController,
+                  decoration: InputDecoration(
+                    labelText: 'Tasks to be Done',
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value!.isEmpty) {
+                      return 'Please enter the tasks to be done';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: supervisorRemarksController,
+                  decoration: InputDecoration(
+                    labelText: 'Supervisor Remarks',
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value!.isEmpty) {
+                      return 'Please enter the supervisor remarks';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      // Save the logbook entry to the database
+                      saveLogbookEntry();
+                      Navigator.pop(context); // Return to LogbookListPage
+                    }
+                  },
+                  child: Text('Confirm', style: TextStyle(fontSize: 18)),
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.red,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -106,19 +136,21 @@ class _AddLogbookPageState extends State<AddLogbookPage> {
   void saveLogbookEntry() async {
     final logbookEntry = {
       'startDate': startDateController.text,
-      // Add more fields for end date, tasks accomplished, tasks to be done, supervisor remarks
+      'endDate': endDateController.text,
+      'tasksAccomplished': tasksAccomplishedController.text,
+      'tasksToDo': tasksToDoController.text,
+      'supervisorRemarks': supervisorRemarksController.text,
       'submissionTime': DateTime.now().toString(),
+      'weekNumber': await getCurrentWeekNumber(widget.studentId),
     };
 
-    final currentStudentId = AuthService.getCurrentStudentId();
-    final currentWeekNumber = await getCurrentWeekNumber(currentStudentId);
+    final currentStudentId = widget.studentId;
 
     await FirebaseFirestore.instance
         .collection('students')
         .doc(currentStudentId)
         .collection('logbooks')
-        .doc('Week $currentWeekNumber')
-        .set(logbookEntry);
+        .add(logbookEntry);
   }
 
   Future<int> getCurrentWeekNumber(String studentId) async {
